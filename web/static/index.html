@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台股量化分析系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+        }
+
+        /* 側邊欄 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 180px;
+            height: 100vh;
+            background: #161b22;
+            border-right: 1px solid #30363d;
+            padding: 20px 0;
+        }
+
+        .logo {
+            padding: 0 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #58a6ff;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .nav-item:hover {
+            background: #21262d;
+        }
+
+        .nav-item.active {
+            background: #21262d;
+            border-left: 3px solid #58a6ff;
+        }
+
+        /* 主內容 */
+        .main {
+            margin-left: 180px;
+            padding: 20px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-title {
+            font-size: 22px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 卡片 */
+        .card {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #30363d;
+        }
+
+        .card h3 {
+            color: #58a6ff;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        /* 按鈕 */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #238636;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+
+        .btn-primary:disabled {
+            background: #484f58;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+
+        .btn-large {
+            padding: 12px 24px;
+            font-size: 15px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* 開關 */
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toggle {
+            width: 44px;
+            height: 24px;
+            background: #484f58;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle.on {
+            background: #238636;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.2s;
+        }
+
+        .toggle.on::after {
+            left: 22px;
+        }
+
+        /* 日誌 */
+        .log-list {
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .log-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            gap: 8px;
+        }
+
+        .log-time {
+            color: #8b949e;
+        }
+
+        .log-success {
+            color: #3fb950;
+        }
+
+        .log-error {
+            color: #f85149;
+        }
+
+        /* 進度條 */
+        .progress-bar {
+            height: 6px;
+            background: #21262d;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #238636;
+            transition: width 0.3s;
+        }
+
+        /* 表格 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+
+        th {
+            background: #21262d;
+            color: #58a6ff;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #1f2937;
+        }
+
+        /* 表單 */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: #8b949e;
+            font-size: 13px;
+        }
+
+        select,
+        input {
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            background: #21262d;
+            color: #c9d1d9;
+            font-size: 13px;
+            min-width: 180px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        /* 指標卡片 */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .metric-card {
+            background: #21262d;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #58a6ff;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: #8b949e;
+            margin-top: 4px;
+        }
+
+        .positive {
+            color: #3fb950 !important;
+        }
+
+        .negative {
+            color: #f85149 !important;
+        }
+
+        /* 狀態 */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            max-width: 100%;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+
+        .status-running {
+            background: #1f6feb;
+            color: white;
+        }
+
+        .status-idle {
+            background: #21262d;
+            color: #8b949e;
+        }
+
+        .last-update {
+            color: #8b949e;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        .header-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        /* 多選標籤 */
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .tag {
+            background: #21262d;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tag .remove {
+            cursor: pointer;
+            color: #f85149;
+            font-weight: bold;
+        }
+
+        .stock-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* 自訂確認對話框 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-box h3 {
+            color: #f0f6fc;
+            margin-bottom: 12px;
+        }
+
+        .modal-box p {
+            color: #8b949e;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .modal-buttons .btn {
+            min-width: 80px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 自訂確認對話框 -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-box">
+            <h3 id="confirm-title">確認</h3>
+            <p id="confirm-message">確定要執行這個操作嗎？</p>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="confirmCancel()">取消</button>
+                <button class="btn btn-primary" onclick="confirmOk()">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 側邊欄 -->
+    <div class="sidebar">
+        <div class="logo">📊 台股量化系統</div>
+        <div class="nav-item active" data-page="data">📥 資料管理</div>
+        <div class="nav-item" data-page="signals">📊 今日訊號</div>
+        <div class="nav-item" data-page="scan">🔍 全市場掃描</div>
+        <div class="nav-item" data-page="portfolio">💼 投資組合</div>
+        <div class="nav-item" data-page="optimize">🎯 參數優化</div>
+        <div class="nav-item" data-page="backtest">📈 個股回測</div>
+        <div class="nav-item" data-page="monitor">📡 策略監控</div>
+    </div>
+
+    <!-- 主內容 -->
+    <div class="main">
+        <!-- ========== 資料管理頁 ========== -->
+        <div class="page active" id="page-data">
+            <div class="header-bar">
+                <h1 class="page-title">📥 資料管理</h1>
+                <span class="last-update" id="last-update">最後更新: --</span>
+            </div>
+
+            <div class="card">
+                <h3>📦 一鍵更新（推薦）</h3>
+                <button class="btn btn-primary btn-large" onclick="downloadAll()">
+                    🚀 一鍵更新全部資料
+                </button>
+                <p style="margin-top: 8px; font-size: 12px; color: #8b949e;">
+                    自動執行：股價 → 法人 → 融資融券 → 指標 → 訊號掃描
+                </p>
+                <div class="progress-bar" id="progress-bar" style="display: none;">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🔧 手動分步下載</h3>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="downloadPrice()">📥 股價</button>
+                    <button class="btn btn-secondary" onclick="downloadInstitutional()">📥 法人</button>
+                    <button class="btn btn-secondary" onclick="downloadMargin()">📥 融資融券</button>
+                    <button class="btn btn-secondary" onclick="calculateIndicators()">📊 指標</button>
+                    <button class="btn btn-secondary" onclick="scanSignals()">🔍 掃描</button>
+                </div>
+                <div style="margin-top: 8px;">
+                    <span class="status-badge status-idle" id="task-status">空閒中</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⏰ 自動排程</h3>
+                <div class="toggle-wrapper">
+                    <span>每日 19:00 自動執行</span>
+                    <div class="toggle" id="scheduler-toggle" onclick="toggleScheduler()"></div>
+                    <span id="scheduler-status">已關閉</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📋 執行日誌</h3>
+                <div class="log-list" id="log-list"></div>
+            </div>
+        </div>
+
+        <!-- ========== 今日訊號頁 ========== -->
+        <div class="page" id="page-signals">
+            <h1 class="page-title">📊 今日訊號</h1>
+            <div class="card">
+                <p>今日大推個股 + 策略效果排名</p>
+                <a href="/api/signals/today" target="_blank" class="btn btn-primary"
+                    style="display: inline-block; margin-top: 10px; text-decoration: none;">
+                    📄 開啟訊號報告
+                </a>
+            </div>
+        </div>
+
+        <!-- ========== 全市場掃描頁 ========== -->
+        <div class="page" id="page-scan">
+            <h1 class="page-title">🔍 全市場掃描</h1>
+            <div class="card">
+                <h3>⚠️ 注意：此功能需要 30-60 分鐘</h3>
+                <p style="margin-bottom: 10px; color: #8b949e;">
+                    會對全市場 2600+ 股票進行回測，找出各策略夏普比率 TOP 30
+                </p>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="runMarketScan()">🚀 執行全市場掃描</button>
+                    <a href="/reports/market_scan_all_strategies.html" target="_blank" class="btn btn-secondary"
+                        style="text-decoration: none;">
+                        📄 查看現有報告
+                    </a>
+                </div>
+                <div id="scan-status" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+
+        <!-- ========== 個股回測頁 ========== -->
+        <div class="page" id="page-backtest">
+            <h1 class="page-title">📈 個股回測</h1>
+
+            <!-- 快速回測 -->
+            <div class="card">
+                <h3>⚡ 快速回測</h3>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                    <div class="form-group">
+                        <label>股票代碼（只需輸入數字）</label>
+                        <input type="text" id="backtest-ticker" placeholder="例: 2330" value="2330"
+                            style="width: 120px;">
+                    </div>
+                    <div class="form-group">
+                        <label>初始資金（元）</label>
+                        <input type="number" id="backtest-capital" value="500000" min="10000" step="10000"
+                            style="width: 120px;" placeholder="例: 500000">
+                    </div>
+                    <div class="form-group">
+                        <label>策略</label>
+                        <select id="backtest-strategy" onchange="toggleCustomMA()">
+                            <optgroup label="📊 技術分析策略">
+                                <option value="MA5x20">MA5x20 均線交叉</option>
+                                <option value="MA5x60">MA5x60 中期均線</option>
+                                <option value="MA_Custom">🔧 自訂均線</option>
+                                <option value="MACD">MACD 動能</option>
+                                <option value="RSI">RSI 超買超賣</option>
+                                <option value="布林通道">布林通道</option>
+                                <option value="動量突破">動量突破</option>
+                                <option value="量價突破">量價突破</option>
+                                <option value="海龜策略">海龜策略</option>
+                            </optgroup>
+                            <optgroup label="🏢 法人籌碼策略">
+                                <option value="外資連買3天">外資連買 3天</option>
+                                <option value="外資連買5天">外資連買 5天</option>
+                                <option value="投信連買3天">投信連買 3天</option>
+                                <option value="投信連買5天">投信連買 5天</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <!-- 自訂均線參數（預設隱藏） -->
+                    <div class="form-group" id="custom-ma-params" style="display: none;">
+                        <label>短期MA</label>
+                        <input type="number" id="backtest-short-ma" value="10" min="2" max="100" style="width: 60px;">
+                        <label style="margin-left: 10px;">長期MA</label>
+                        <input type="number" id="backtest-long-ma" value="40" min="5" max="500" style="width: 60px;">
+                    </div>
+                    <!-- 回測時間範圍 -->
+                    <div class="form-group">
+                        <label>開始日期</label>
+                        <input type="date" id="backtest-start-date" value="2024-01-01" style="width: 140px;">
+                    </div>
+                    <div class="form-group">
+                        <label>結束日期</label>
+                        <input type="date" id="backtest-end-date" style="width: 140px;">
+                    </div>
+                    <button class="btn btn-primary" onclick="runBacktest()">🚀 執行回測</button>
+                </div>
+                <p style="margin-top: 8px; font-size: 11px; color: #8b949e;">
+                    💡 自動補上 .TW 後綴，也支援直接輸入 2330.TW 或 6739.TWO
+                </p>
+            </div>
+
+            <!-- 回測結果 -->
+            <div class="card" id="backtest-result" style="display: none;">
+                <h3>📊 回測結果 - <span id="result-ticker"></span></h3>
+
+                <!-- 策略說明 -->
+                <div id="strategy-info"
+                    style="margin-bottom: 15px; padding: 12px; background: #21262d; border-radius: 8px;">
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div><strong>📥 買入條件：</strong><span id="strategy-entry"></span></div>
+                        <div><strong>📤 賣出條件：</strong><span id="strategy-exit"></span></div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #8b949e;">
+                        <span id="strategy-type"></span> | 風險等級: <span id="strategy-risk"></span>
+                    </div>
+                </div>
+
+                <!-- 績效指標 -->
+                <div class="metrics-grid" id="backtest-metrics"></div>
+
+                <!-- 交易明細 -->
+                <div id="trades-section" style="margin-top: 15px;">
+                    <h4>📋 交易明細（最近 30 筆）</h4>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        <table id="trades-table">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>類型</th>
+                                    <th>價格</th>
+                                    <th>股數</th>
+                                    <th>損益</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 批次回測 -->
+            <div class="card">
+                <h3>📋 批次回測（多股比較）</h3>
+                <div class="form-group">
+                    <label>輸入多個股票代碼（用逗號分隔，只需輸入數字）</label>
+                    <input type="text" id="batch-tickers" placeholder="例: 2330, 2317, 2454, 2881, 0050"
+                        style="width: 100%; max-width: 400px;">
+                </div>
+                <button class="btn btn-secondary" onclick="runBatchBacktest()">批次回測</button>
+
+                <div id="batch-result" style="margin-top: 15px; display: none;">
+                    <table id="batch-table">
+                        <thead>
+                            <tr>
+                                <th>股票</th>
+                                <th>策略</th>
+                                <th>夏普</th>
+                                <th>報酬率</th>
+                                <th>回撤</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 熱門股票快捷 -->
+            <div class="card">
+                <h3>🔥 熱門股票快捷</h3>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="setTicker('2330')">台積電</button>
+                    <button class="btn btn-secondary" onclick="setTicker('2317')">鴻海</button>
+                    <button class="btn btn-secondary" onclick="setTicker('2454')">聯發科</button>
+                    <button class="btn btn-secondary" onclick="setTicker('2881')">富邦金</button>
+                    <button class="btn btn-secondary" onclick="setTicker('0050')">元大50</button>
+                    <button class="btn btn-secondary" onclick="setTicker('0056')">高股息</button>
+                    <button class="btn btn-secondary" onclick="setTicker('00878')">永續高息</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 投資組合頁 ========== -->
+        <div class="page" id="page-portfolio">
+            <h1 class="page-title">💼 投資組合回測</h1>
+
+            <!-- 快速組合 -->
+            <div class="card">
+                <h3>⚡ 快速開始</h3>
+                <p style="margin-bottom: 10px; color: #8b949e;">選擇預設組合或自訂股票</p>
+                <div class="btn-group" style="margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="setPortfolio('2330,2317,2454')">🔧 科技三傑</button>
+                    <button class="btn btn-secondary" onclick="setPortfolio('2881,2882,2883,2884')">🏦 四大金控</button>
+                    <button class="btn btn-secondary" onclick="setPortfolio('0050,0056,00878')">📊 ETF三寶</button>
+                    <button class="btn btn-secondary" onclick="setPortfolio('2330,2317,2454,2881,2882')">⭐ 權值五虎</button>
+                </div>
+            </div>
+
+            <!-- 自訂組合 -->
+            <div class="card">
+                <h3>🔧 自訂組合</h3>
+                <div class="form-group">
+                    <label>股票代碼（用逗號分隔，只需輸入數字，最多 10 檔）</label>
+                    <input type="text" id="portfolio-tickers" placeholder="例: 2330, 2317, 2454, 2881"
+                        style="width: 100%; max-width: 500px;" value="2330, 2317, 2454">
+                </div>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                    <div class="form-group">
+                        <label>初始資金（元）</label>
+                        <input type="number" id="portfolio-capital" value="1000000" min="10000" step="10000"
+                            style="width: 120px;" placeholder="例: 1000000">
+                    </div>
+                    <div class="form-group">
+                        <label>策略選擇</label>
+                        <select id="portfolio-strategy" onchange="updateStrategyParams()">
+                            <option value="equal_weight">📊 等權重 (每月再平衡)</option>
+                            <option value="buy_hold">💎 買入持有</option>
+                            <option value="dca">📅 定期定額</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>開始日期</label>
+                        <input type="date" id="portfolio-start-date" value="2024-01-01" style="width: 140px;">
+                    </div>
+                    <div class="form-group">
+                        <label>結束日期</label>
+                        <input type="date" id="portfolio-end-date" style="width: 140px;">
+                    </div>
+                    <button class="btn btn-primary" id="portfolio-btn" onclick="runPortfolio()">🚀 執行投組回測</button>
+                </div>
+
+                <!-- 策略參數 (動態顯示) -->
+                <div id="strategy-params" style="margin-top: 12px; display: none;">
+                    <!-- 等權重參數 -->
+                    <div id="equal-weight-params" style="display: none;">
+                        <div class="form-group">
+                            <label>再平衡頻率</label>
+                            <select id="rebalance-freq" style="width: 120px;">
+                                <option value="weekly">每週（週一）</option>
+                                <option value="monthly" selected>每月（月初）</option>
+                                <option value="quarterly">每季（季初）</option>
+                            </select>
+                        </div>
+                        <p style="font-size: 11px; color: #8b949e; margin-top: 4px;">📊 每到指定週期，將持股價值重新分配成等權重</p>
+                    </div>
+
+                    <!-- 買入持有參數 -->
+                    <div id="buy-hold-params" style="display: none;">
+                        <div class="form-group">
+                            <label>持有模式</label>
+                            <select id="buy-hold-mode" onchange="updateBuyHoldMode()" style="width: 280px;">
+                                <option value="diamond">💎 鑽石手（永不賣出）</option>
+                                <option value="rebuy">🔄 停損停利後買回</option>
+                                <option value="multilayer">📈 多層次鑽石手（自訂加碼）</option>
+                            </select>
+                        </div>
+
+                        <!-- 停損停利設定（鑽石手模式不顯示） -->
+                        <div id="stop-params" style="display: none;">
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div class="form-group">
+                                    <label>停損 (%)</label>
+                                    <input type="number" id="stop-loss" value="-10" min="-50" max="0" step="1"
+                                        style="width: 80px;">
+                                </div>
+                                <div class="form-group">
+                                    <label>停利 (%)</label>
+                                    <input type="number" id="take-profit" value="30" min="0" max="200" step="5"
+                                        style="width: 80px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 停損停利後買回的額外設定 -->
+                        <div id="rebuy-params" style="display: none;">
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div class="form-group">
+                                    <label>冷靜期（天）</label>
+                                    <input type="number" id="cooldown-days" value="30" min="1" max="365"
+                                        style="width: 80px;">
+                                </div>
+                                <div class="form-group">
+                                    <label>買回金額</label>
+                                    <select id="rebuy-amount" style="width: 120px;">
+                                        <option value="all">全部資金</option>
+                                        <option value="original">原始投入金額</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <p style="font-size: 11px; color: #8b949e; margin-top: 4px;">🔄 達到停損停利後賣出，等待冷靜期後自動買回</p>
+                        </div>
+
+                        <!-- 多層次鑽石手加碼時間表 -->
+                        <div id="multilayer-params" style="display: none;">
+                            <p style="font-size: 12px; color: #58a6ff; margin-bottom: 8px;">📈
+                                初始資金會先買入，之後依下列時間表加碼（若無開盤自動順延）</p>
+                            <div id="extra-buys-list"></div>
+                            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                                <input type="date" id="extra-buy-date" style="width: 140px;">
+                                <input type="number" id="extra-buy-amount" placeholder="金額" min="1000" step="1000"
+                                    style="width: 100px;">
+                                <button class="btn btn-secondary" onclick="addExtraBuy()" style="padding: 4px 12px;">➕
+                                    新增</button>
+                            </div>
+                        </div>
+
+                        <p id="buy-hold-hint" style="font-size: 11px; color: #8b949e; margin-top: 8px;">💎 永遠持有，不管漲跌都不賣出
+                        </p>
+                    </div>
+
+                    <!-- 定期定額參數 -->
+                    <div id="dca-params" style="display: none;">
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <div class="form-group">
+                                <label>每月投入金額 (元)</label>
+                                <input type="number" id="dca-amount" value="10000" min="1000" step="1000"
+                                    style="width: 120px;" placeholder="例: 10000">
+                            </div>
+                            <div class="form-group">
+                                <label>每月買入日</label>
+                                <select id="dca-day" style="width: 80px;">
+                                    <option value="1">1 日</option>
+                                    <option value="5">5 日</option>
+                                    <option value="10">10 日</option>
+                                    <option value="15">15 日</option>
+                                    <option value="20">20 日</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p style="font-size: 11px; color: #8b949e; margin-top: 4px;">📅 初始資金會一次買入，之後每月固定投入上述金額（若無開盤自動順延）
+                        </p>
+                    </div>
+                </div>
+
+                <div id="portfolio-status" style="margin-top: 8px;"></div>
+            </div>
+
+            <!-- 回測結果 -->
+            <div class="card" id="portfolio-result" style="display: none;">
+                <h3>📊 投組回測結果</h3>
+                <div id="portfolio-info" style="margin-bottom: 15px;"></div>
+                <div class="metrics-grid" id="portfolio-metrics"></div>
+            </div>
+
+            <!-- 歷史報告 -->
+            <div class="card">
+                <h3>📂 歷史報告管理</h3>
+                <div style="margin-bottom: 10px;">
+                    <button class="btn btn-secondary" onclick="loadReports('portfolio')">🔄 重新整理</button>
+                </div>
+                <div id="portfolio-reports-list" style="max-height: 300px; overflow-y: auto;">
+                    <p style="color: #8b949e;">載入中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 參數優化頁 ========== -->
+        <div class="page" id="page-optimize">
+            <h1 class="page-title">🎯 均線策略參數優化</h1>
+
+            <!-- 說明 -->
+            <div class="card">
+                <h3>💡 功能說明</h3>
+                <p style="color: #8b949e;">
+                    自動測試多組均線交叉參數組合，找出歷史表現最佳的短期/長期均線配置。
+                </p>
+            </div>
+
+            <!-- 參數設定 -->
+            <div class="card">
+                <h3>⚙️ 參數設定</h3>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                    <div class="form-group">
+                        <label>股票代碼（只需輸入數字）</label>
+                        <input type="text" id="opt-ticker" placeholder="例: 2330" value="2330" style="width: 120px;">
+                    </div>
+                    <div class="form-group">
+                        <label>初始資金（元）</label>
+                        <input type="number" id="opt-capital" value="500000" min="10000" step="10000"
+                            style="width: 120px;" placeholder="例: 500000">
+                    </div>
+                    <div class="form-group">
+                        <label>短期均線（天）</label>
+                        <select id="opt-short-preset">
+                            <option value="3,5,7,10">快速 (3-10)</option>
+                            <option value="5,10,15,20" selected>標準 (5-20)</option>
+                            <option value="10,15,20,30">穩健 (10-30)</option>
+                            <option value="custom">自訂...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>長期均線（天）</label>
+                        <select id="opt-long-preset">
+                            <option value="20,30,40,60">中期 (20-60)</option>
+                            <option value="20,40,60,120" selected>標準 (20-120)</option>
+                            <option value="60,120,180,240">長期 (60-240)</option>
+                            <option value="custom">自訂...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 自訂輸入（預設隱藏） -->
+                <div id="custom-params" style="display: none; margin-top: 15px;">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div class="form-group">
+                            <label>自訂短期（逗號分隔）</label>
+                            <input type="text" id="opt-short" value="5,10,15,20" style="width: 180px;">
+                        </div>
+                        <div class="form-group">
+                            <label>自訂長期（逗號分隔）</label>
+                            <input type="text" id="opt-long" value="20,40,60,120" style="width: 180px;">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="runOptimize()">🚀 開始優化</button>
+                </div>
+            </div>
+
+            <!-- 熱門股票快捷 -->
+            <div class="card">
+                <h3>🔥 熱門股票快捷</h3>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="setOptTicker('2330')">台積電</button>
+                    <button class="btn btn-secondary" onclick="setOptTicker('2317')">鴻海</button>
+                    <button class="btn btn-secondary" onclick="setOptTicker('2454')">聯發科</button>
+                    <button class="btn btn-secondary" onclick="setOptTicker('0050')">元大50</button>
+                    <button class="btn btn-secondary" onclick="setOptTicker('0056')">高股息</button>
+                </div>
+            </div>
+
+            <!-- 優化結果 -->
+            <div class="card" id="opt-result" style="display: none;">
+                <h3>🏆 最佳參數</h3>
+                <div id="opt-best"></div>
+
+                <h3 style="margin-top: 15px;">📊 全部組合排名</h3>
+                <table id="opt-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>短期MA</th>
+                            <th>長期MA</th>
+                            <th>夏普比率</th>
+                            <th>報酬率</th>
+                            <th>交易次數</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========== 策略監控頁 ========== -->
+        <div class="page" id="page-monitor">
+            <h1 class="page-title">📡 策略監控</h1>
+
+            <div class="card">
+                <h3>🔧 新增監控</h3>
+                <p style="margin-bottom: 10px; color: #8b949e;">選擇股票和策略來監控交易訊號</p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                    <div class="form-group">
+                        <label>股票代碼</label>
+                        <input type="text" id="monitor-ticker" placeholder="例: 2330" style="width: 100px;">
+                    </div>
+                    <div class="form-group">
+                        <label>策略</label>
+                        <select id="monitor-strategy" onchange="toggleMonitorCustomMA()">
+                            <optgroup label="📊 技術分析策略">
+                                <option value="MA5x20">MA5x20 均線交叉</option>
+                                <option value="MA5x60">MA5x60 中期均線</option>
+                                <option value="MA_Custom">🔧 自訂均線</option>
+                                <option value="MACD">MACD 動能</option>
+                                <option value="RSI">RSI 超買超賣</option>
+                                <option value="布林通道">布林通道</option>
+                                <option value="動量突破">動量突破</option>
+                                <option value="量價突破">量價突破</option>
+                                <option value="海龜策略">海龜策略</option>
+                            </optgroup>
+                            <optgroup label="🏢 法人籌碼策略">
+                                <option value="外資連買3天">外資連買 3天</option>
+                                <option value="外資連買5天">外資連買 5天</option>
+                                <option value="投信連買3天">投信連買 3天</option>
+                                <option value="投信連買5天">投信連買 5天</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <!-- 自訂均線參數（預設隱藏） -->
+                    <div class="form-group" id="monitor-custom-ma-params" style="display: none;">
+                        <label>短期MA</label>
+                        <input type="number" id="monitor-short-ma" value="10" min="2" max="100" style="width: 60px;">
+                        <label style="margin-left: 10px;">長期MA</label>
+                        <input type="number" id="monitor-long-ma" value="40" min="5" max="500" style="width: 60px;">
+                    </div>
+                    <button class="btn btn-primary" onclick="addMonitor()">➕ 添加監控</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📋 監控清單</h3>
+                <div id="monitor-list">
+                    <p style="color: #8b949e; text-align: center; padding: 20px;">
+                        尚無監控項目，請添加股票和策略
+                    </p>
+                </div>
+            </div>
+
+            <!-- 交易歷史詳情（彈出視窗） -->
+            <div class="card" id="monitor-detail" style="display: none;">
+                <h3>📜 交易歷史 - <span id="detail-ticker"></span> (<span id="detail-strategy"></span>)</h3>
+                <div id="detail-trades"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 頁面切換
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                item.classList.add('active');
+                document.getElementById('page-' + item.dataset.page).classList.add('active');
+            });
+        });
+
+        // 自訂確認對話框（解決 Chrome 閃退問題）
+        let confirmCallback = null;
+
+        function showConfirm(title, message, onConfirm) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            document.getElementById('confirm-modal').classList.add('show');
+            confirmCallback = onConfirm;
+        }
+
+        function confirmOk() {
+            document.getElementById('confirm-modal').classList.remove('show');
+            if (confirmCallback) {
+                confirmCallback();
+                confirmCallback = null;
+            }
+        }
+
+        function confirmCancel() {
+            document.getElementById('confirm-modal').classList.remove('show');
+            confirmCallback = null;
+        }
+
+        // API 呼叫
+        async function api(path, method = 'GET', body = null) {
+            const options = { method };
+            if (body) {
+                options.headers = { 'Content-Type': 'application/json' };
+                options.body = JSON.stringify(body);
+            }
+            const res = await fetch(path, options);
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || '請求失敗');
+            }
+            return res.json();
+        }
+
+        // 更新狀態
+        async function updateStatus() {
+            try {
+                const data = await api('/api/status');
+
+                document.getElementById('last-update').textContent =
+                    '最後更新: ' + (data.last_update || '--');
+
+                // 排程
+                const toggle = document.getElementById('scheduler-toggle');
+                const status = document.getElementById('scheduler-status');
+                if (data.scheduler_enabled) {
+                    toggle.classList.add('on');
+                    status.textContent = '已開啟';
+                } else {
+                    toggle.classList.remove('on');
+                    status.textContent = '已關閉';
+                }
+
+                // 任務狀態
+                const taskStatus = document.getElementById('task-status');
+                const progressBar = document.getElementById('progress-bar');
+                const progressFill = document.getElementById('progress-fill');
+
+                if (data.running_task) {
+                    let statusText = '執行中: ' + data.running_task;
+                    if (data.current_step) {
+                        statusText += ' | ' + data.current_step;
+                    }
+                    taskStatus.textContent = statusText;
+                    taskStatus.className = 'status-badge status-running';
+
+                    if (data.task_progress > 0) {
+                        progressBar.style.display = 'block';
+                        progressFill.style.width = data.task_progress + '%';
+                    } else {
+                        progressBar.style.display = 'block';
+                        progressFill.style.width = '5%';  // 至少顯示一點進度
+                    }
+                } else {
+                    taskStatus.textContent = '空閒中';
+                    taskStatus.className = 'status-badge status-idle';
+                    progressBar.style.display = 'none';
+                }
+
+                // 日誌
+                document.getElementById('log-list').innerHTML = data.logs.map(log => `
+                    <div class="log-item">
+                        <span class="log-time">${log.time}</span>
+                        <span class="${log.level === 'success' ? 'log-success' : log.level === 'error' ? 'log-error' : ''}">${log.message}</span>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error('更新狀態失敗', e);
+            }
+        }
+
+        // 下載功能
+        async function downloadAll() {
+            await api('/api/download/all', 'POST');
+            updateStatus();
+        }
+
+        async function downloadPrice() {
+            await api('/api/download/price', 'POST');
+            updateStatus();
+        }
+
+        async function downloadInstitutional() {
+            await api('/api/download/institutional', 'POST');
+            updateStatus();
+        }
+
+        async function downloadMargin() {
+            await api('/api/download/margin', 'POST');
+            updateStatus();
+        }
+
+        async function calculateIndicators() {
+            await api('/api/download/indicators', 'POST');
+            updateStatus();
+        }
+
+        async function scanSignals() {
+            await api('/api/scan/signals', 'POST');
+            updateStatus();
+        }
+
+        function runMarketScan() {
+            showConfirm('🔍 全市場掃描', '全市場掃描需要 30-60 分鐘，確定要執行嗎？', async function () {
+                const statusEl = document.getElementById('scan-status');
+                statusEl.innerHTML = '<span class="status-badge status-running">⏳ 正在啟動掃描...</span>';
+
+                try {
+                    const data = await api('/api/scan/market', 'POST');
+                    statusEl.innerHTML = '<span class="status-badge status-running">⏳ 正在執行中，請查看執行日誌...</span>';
+                    updateStatus();
+                } catch (e) {
+                    console.error('全市場掃描失敗:', e);
+                    statusEl.innerHTML = `<span class="status-badge status-error">❌ 執行失敗: ${e.message || '未知錯誤'}</span>`;
+                }
+            });
+        }
+
+        async function toggleScheduler() {
+            await api('/api/scheduler/toggle', 'POST');
+            updateStatus();
+        }
+
+        // 回測 - 自訂均線參數切換
+        function toggleCustomMA() {
+            const strategy = document.getElementById('backtest-strategy').value;
+            const customParams = document.getElementById('custom-ma-params');
+            customParams.style.display = strategy === 'MA_Custom' ? 'flex' : 'none';
+        }
+
+        function setTicker(code) {
+            document.getElementById('backtest-ticker').value = code;
+        }
+
+        async function runBacktest() {
+            const ticker = document.getElementById('backtest-ticker').value.trim();
+            const strategy = document.getElementById('backtest-strategy').value;
+            const capital = parseInt(document.getElementById('backtest-capital').value) || 500000;
+
+            // 自訂均線參數
+            const short_period = strategy === 'MA_Custom'
+                ? parseInt(document.getElementById('backtest-short-ma').value) || 10
+                : null;
+            const long_period = strategy === 'MA_Custom'
+                ? parseInt(document.getElementById('backtest-long-ma').value) || 40
+                : null;
+
+            // 時間範圍參數（空值表示使用全部數據）
+            const start_date = document.getElementById('backtest-start-date').value || null;
+            const end_date = document.getElementById('backtest-end-date').value || null;
+
+            if (!ticker) { alert('請輸入股票代碼'); return; }
+
+            // 驗證自訂參數
+            if (strategy === 'MA_Custom' && short_period >= long_period) {
+                alert('短期均線天數必須小於長期均線天數');
+                return;
+            }
+
+            try {
+                const data = await api('/api/backtest/single', 'POST', {
+                    ticker, strategy, capital, short_period, long_period, start_date, end_date
+                });
+
+                document.getElementById('backtest-result').style.display = 'block';
+                // 自訂均線顯示 MA{短}x{長}，其他策略照常顯示
+                const strategyLabel = strategy === 'MA_Custom'
+                    ? `MA${short_period}x${long_period}`
+                    : strategy;
+                document.getElementById('result-ticker').textContent = data.ticker + ' (' + strategyLabel + ')';
+
+                // 顯示策略說明
+                if (data.strategy_info) {
+                    document.getElementById('strategy-entry').textContent = data.strategy_info.entry || '未定義';
+                    document.getElementById('strategy-exit').textContent = data.strategy_info.exit || '未定義';
+                    document.getElementById('strategy-type').textContent = data.strategy_info.type || '';
+                    document.getElementById('strategy-risk').textContent = data.strategy_info.risk || '';
+                }
+
+                // 顯示績效指標
+                document.getElementById('backtest-metrics').innerHTML = `
+                    <div class="metric-card">
+                        <div class="metric-value ${data.metrics.total_return >= 0 ? 'positive' : 'negative'}">${data.metrics.total_return}%</div>
+                        <div class="metric-label">總報酬率</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${data.metrics.sharpe_ratio}</div>
+                        <div class="metric-label">夏普比率</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value negative">${data.metrics.max_drawdown}%</div>
+                        <div class="metric-label">最大回撤</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${data.metrics.win_rate}%</div>
+                        <div class="metric-label">勝率</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${data.metrics.trade_count}</div>
+                        <div class="metric-label">交易次數</div>
+                    </div>
+                `;
+
+                // 顯示交易明細
+                const tradesBody = document.querySelector('#trades-table tbody');
+                if (data.trades && data.trades.length > 0) {
+                    tradesBody.innerHTML = data.trades.map(t => `
+                        <tr>
+                            <td>${t.date}</td>
+                            <td class="${t.type === 'BUY' ? 'positive' : 'negative'}">${t.type === 'BUY' ? '🟢 買入' : '🔴 賣出'}</td>
+                            <td>$${t.price}</td>
+                            <td>${t.shares}</td>
+                            <td class="${(t.profit || 0) >= 0 ? 'positive' : 'negative'}">${t.profit !== null ? '$' + t.profit : '-'}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tradesBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">無交易記錄</td></tr>';
+                }
+            } catch (e) {
+                alert('回測失敗: ' + e.message);
+            }
+        }
+
+        // 批次回測
+        async function runBatchBacktest() {
+            const input = document.getElementById('batch-tickers').value.trim();
+            const strategy = document.getElementById('backtest-strategy').value;
+            const capital = parseInt(document.getElementById('backtest-capital').value) || 500000;
+
+            if (!input) { alert('請輸入股票代碼'); return; }
+
+            const tickers = input.split(',').map(t => t.trim()).filter(t => t);
+
+            try {
+                const data = await api('/api/backtest/batch', 'POST', { tickers, strategy, capital });
+
+                document.getElementById('batch-result').style.display = 'block';
+                document.querySelector('#batch-table tbody').innerHTML = data.results.map(r => `
+                    <tr>
+                        <td>${r.ticker}</td>
+                        <td>${r.strategy}</td>
+                        <td>${r.metrics.sharpe_ratio}</td>
+                        <td class="${r.metrics.total_return >= 0 ? 'positive' : 'negative'}">${r.metrics.total_return}%</td>
+                        <td>${r.metrics.max_drawdown}%</td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                alert('批次回測失敗: ' + e.message);
+            }
+        }
+
+        // 投組回測 - 輔助函數
+        function setPortfolio(codes) {
+            document.getElementById('portfolio-tickers').value = codes;
+        }
+
+        // 策略參數切換
+        // 加碼時間表資料
+        let extraBuys = [];
+
+        function updateStrategyParams() {
+            const strategy = document.getElementById('portfolio-strategy').value;
+            const paramsDiv = document.getElementById('strategy-params');
+            const equalWeightParams = document.getElementById('equal-weight-params');
+            const buyHoldParams = document.getElementById('buy-hold-params');
+            const dcaParams = document.getElementById('dca-params');
+
+            // 隱藏所有參數
+            equalWeightParams.style.display = 'none';
+            buyHoldParams.style.display = 'none';
+            dcaParams.style.display = 'none';
+
+            if (strategy === 'equal_weight') {
+                paramsDiv.style.display = 'block';
+                equalWeightParams.style.display = 'block';
+            } else if (strategy === 'buy_hold') {
+                paramsDiv.style.display = 'block';
+                buyHoldParams.style.display = 'block';
+                updateBuyHoldMode();
+            } else if (strategy === 'dca') {
+                paramsDiv.style.display = 'block';
+                dcaParams.style.display = 'block';
+            } else {
+                paramsDiv.style.display = 'none';
+            }
+        }
+
+        function updateBuyHoldMode() {
+            const mode = document.getElementById('buy-hold-mode').value;
+            const stopParams = document.getElementById('stop-params');
+            const rebuyParams = document.getElementById('rebuy-params');
+            const multilayerParams = document.getElementById('multilayer-params');
+            const hint = document.getElementById('buy-hold-hint');
+
+            // 隱藏所有
+            stopParams.style.display = 'none';
+            rebuyParams.style.display = 'none';
+            multilayerParams.style.display = 'none';
+
+            if (mode === 'diamond') {
+                hint.textContent = '💎 永遠持有，不管漲跌都不賣出';
+            } else if (mode === 'rebuy') {
+                stopParams.style.display = 'block';
+                rebuyParams.style.display = 'block';
+                hint.textContent = '🔄 達到停損停利後賣出，冷靜期後自動買回';
+            } else if (mode === 'multilayer') {
+                multilayerParams.style.display = 'block';
+                hint.textContent = '📈 永遠持有 + 依時間表加碼';
+            }
+        }
+
+        function addExtraBuy() {
+            const dateInput = document.getElementById('extra-buy-date');
+            const amountInput = document.getElementById('extra-buy-amount');
+            const date = dateInput.value;
+            const amount = parseFloat(amountInput.value);
+
+            if (!date || !amount || amount < 1000) {
+                alert('請輸入有效的日期和金額（至少 1000 元）');
+                return;
+            }
+
+            extraBuys.push({ date, amount });
+            extraBuys.sort((a, b) => a.date.localeCompare(b.date));
+            renderExtraBuysList();
+
+            // 清空輸入
+            dateInput.value = '';
+            amountInput.value = '';
+        }
+
+        function removeExtraBuy(index) {
+            extraBuys.splice(index, 1);
+            renderExtraBuysList();
+        }
+
+        function renderExtraBuysList() {
+            const listEl = document.getElementById('extra-buys-list');
+            if (extraBuys.length === 0) {
+                listEl.innerHTML = '<p style="color: #8b949e; font-size: 11px;">尚未新增加碼計畫</p>';
+                return;
+            }
+            listEl.innerHTML = extraBuys.map((item, i) => `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px solid #30363d;">
+                    <span style="color: #58a6ff;">${item.date}</span>
+                    <span style="color: #3fb950;">$${item.amount.toLocaleString()}</span>
+                    <button class="btn btn-secondary" onclick="removeExtraBuy(${i})" style="padding: 2px 8px; font-size: 10px;">✕</button>
+                </div>
+            `).join('');
+        }
+
+        async function runPortfolio() {
+            const input = document.getElementById('portfolio-tickers').value.trim();
+            const capital = parseFloat(document.getElementById('portfolio-capital').value) || 1000000;
+            const strategy = document.getElementById('portfolio-strategy').value;
+            const statusEl = document.getElementById('portfolio-status');
+            const btn = document.getElementById('portfolio-btn');
+
+            if (!input) { alert('請輸入股票代碼'); return; }
+
+            const tickers = input.split(',').map(t => t.trim()).filter(t => t);
+
+            // 建立請求資料
+            const requestData = {
+                tickers,
+                initial_capital: capital,
+                strategy: strategy
+            };
+
+            // 加入日期參數
+            const startDate = document.getElementById('portfolio-start-date').value;
+            const endDate = document.getElementById('portfolio-end-date').value;
+            if (startDate) requestData.start_date = startDate;
+            if (endDate) requestData.end_date = endDate;
+
+            // 加入策略參數
+            if (strategy === 'equal_weight') {
+                requestData.rebalance_freq = document.getElementById('rebalance-freq').value;
+            } else if (strategy === 'buy_hold') {
+                const mode = document.getElementById('buy-hold-mode').value;
+                requestData.buy_hold_mode = mode;
+
+                if (mode === 'rebuy') {
+                    // 停損停利後買回模式
+                    const stopLoss = parseFloat(document.getElementById('stop-loss').value) / 100;
+                    const takeProfit = parseFloat(document.getElementById('take-profit').value) / 100;
+                    if (stopLoss) requestData.stop_loss = stopLoss;
+                    if (takeProfit) requestData.take_profit = takeProfit;
+                    requestData.cooldown_days = parseInt(document.getElementById('cooldown-days').value) || 30;
+                    requestData.rebuy_amount = document.getElementById('rebuy-amount').value;
+                } else if (mode === 'multilayer') {
+                    // 多層次鑽石手模式
+                    requestData.extra_buys = extraBuys;
+                }
+                // diamond 模式不需要額外參數
+            } else if (strategy === 'dca') {
+                requestData.dca_day = parseInt(document.getElementById('dca-day').value) || 1;
+                requestData.dca_amount = parseFloat(document.getElementById('dca-amount').value) || 10000;
+            }
+
+            // 顯示 loading 狀態
+            statusEl.innerHTML = '<span class="status-badge status-running">⏳ 正在執行回測...</span>';
+            btn.disabled = true;
+
+            try {
+                const data = await api('/api/portfolio/run', 'POST', requestData);
+
+                statusEl.innerHTML = '<span class="status-badge status-success">✅ 回測完成</span>';
+                document.getElementById('portfolio-result').style.display = 'block';
+                document.getElementById('portfolio-info').innerHTML = `
+                    <p>📦 股票組合: <strong>${data.tickers.join(', ')}</strong></p>
+                    <p>📈 使用策略: <strong>${data.strategy}</strong></p>
+                    <p>💰 初始資金: <strong>$${capital.toLocaleString()}</strong> → 最終市值: <strong>$${data.final_value.toLocaleString()}</strong></p>
+                    ${data.report_url ? `<p><a href="${data.report_url}" target="_blank" class="btn btn-secondary" style="text-decoration:none; margin-top:8px;">📄 查看完整報告</a></p>` : ''}
+                `;
+                document.getElementById('portfolio-metrics').innerHTML = `
+                    <div class="metric-card">
+                        <div class="metric-value ${data.metrics.total_return >= 0 ? 'positive' : 'negative'}">${data.metrics.total_return}%</div>
+                        <div class="metric-label">總報酬率</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${data.metrics.sharpe_ratio}</div>
+                        <div class="metric-label">夏普比率</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value negative">${data.metrics.max_drawdown}%</div>
+                        <div class="metric-label">最大回撤</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${data.metrics.trade_count}</div>
+                        <div class="metric-label">交易次數</div>
+                    </div>
+                `;
+
+                // 重新載入報告列表
+                loadReports('portfolio');
+            } catch (e) {
+                console.error('投組回測失敗:', e);
+                statusEl.innerHTML = `<span class="status-badge status-error">❌ 回測失敗: ${e.message || '未知錯誤'}</span>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // 報告管理
+        async function loadReports(type = null) {
+            const listEl = document.getElementById('portfolio-reports-list');
+            if (!listEl) return;
+
+            try {
+                const url = type ? `/api/reports?report_type=${type}` : '/api/reports';
+                const data = await api(url, 'GET');
+
+                if (data.reports.length === 0) {
+                    listEl.innerHTML = '<p style="color: #8b949e;">暫無報告</p>';
+                    return;
+                }
+
+                listEl.innerHTML = data.reports.map(r => {
+                    const date = new Date(r.modified * 1000);
+                    const dateStr = date.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #30363d;">
+                            <div>
+                                <span>${r.icon}</span>
+                                <a href="${r.url}" target="_blank" style="color: #58a6ff; text-decoration: none;">${r.filename}</a>
+                                <span style="color: #8b949e; font-size: 11px; margin-left: 8px;">${dateStr}</span>
+                            </div>
+                            <button onclick="deleteReport('${r.filename}')" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;">🗑️</button>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                listEl.innerHTML = `<p style="color: #f85149;">載入失敗: ${e.message}</p>`;
+            }
+        }
+
+        function deleteReport(filename) {
+            showConfirm('🗑️ 刪除報告', `確定要刪除 ${filename} 嗎？`, async function () {
+                try {
+                    await api(`/api/reports/${filename}`, 'DELETE');
+                    loadReports('portfolio');
+                } catch (e) {
+                    console.error('刪除報告失敗:', e);
+                    // 使用非阻塞方式顯示錯誤
+                    const listEl = document.getElementById('portfolio-reports-list');
+                    if (listEl) {
+                        const errorDiv = document.createElement('div');
+                        errorDiv.innerHTML = `<p style="color: #f85149; padding: 8px;">❌ 刪除失敗: ${e.message}</p>`;
+                        listEl.insertBefore(errorDiv, listEl.firstChild);
+                        setTimeout(() => errorDiv.remove(), 3000);
+                    }
+                }
+            });
+        }
+
+        // 優化 - 輔助函數
+        function setOptTicker(code) {
+            document.getElementById('opt-ticker').value = code;
+        }
+
+        // 顯示/隱藏自訂參數輸入
+        document.getElementById('opt-short-preset')?.addEventListener('change', function () {
+            toggleCustomParams();
+        });
+        document.getElementById('opt-long-preset')?.addEventListener('change', function () {
+            toggleCustomParams();
+        });
+
+        function toggleCustomParams() {
+            const shortVal = document.getElementById('opt-short-preset')?.value;
+            const longVal = document.getElementById('opt-long-preset')?.value;
+            const customDiv = document.getElementById('custom-params');
+            if (customDiv) {
+                customDiv.style.display = (shortVal === 'custom' || longVal === 'custom') ? 'block' : 'none';
+            }
+        }
+
+        async function runOptimize() {
+            const ticker = document.getElementById('opt-ticker').value.trim();
+
+            // 從下拉選單或自訂輸入取得參數
+            const shortPreset = document.getElementById('opt-short-preset').value;
+            const longPreset = document.getElementById('opt-long-preset').value;
+
+            let shortRange, longRange;
+            if (shortPreset === 'custom') {
+                shortRange = document.getElementById('opt-short').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            } else {
+                shortRange = shortPreset.split(',').map(s => parseInt(s.trim()));
+            }
+            if (longPreset === 'custom') {
+                longRange = document.getElementById('opt-long').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            } else {
+                longRange = longPreset.split(',').map(s => parseInt(s.trim()));
+            }
+
+            if (!ticker) { alert('請輸入股票代碼'); return; }
+            if (shortRange.length === 0 || longRange.length === 0) { alert('請輸入有效的參數範圍'); return; }
+
+            try {
+                const data = await api('/api/optimize', 'POST', {
+                    ticker,
+                    short_range: shortRange,
+                    long_range: longRange
+                });
+
+                document.getElementById('opt-result').style.display = 'block';
+
+                const best = data.best_params;
+                document.getElementById('opt-best').innerHTML = `
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">${best.short_period}</div>
+                            <div class="metric-label">最佳短期MA</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${best.long_period}</div>
+                            <div class="metric-label">最佳長期MA</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${best.sharpe_ratio?.toFixed(2)}</div>
+                            <div class="metric-label">夏普比率</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value ${best.total_return >= 0 ? 'positive' : 'negative'}">${(best.total_return * 100).toFixed(1)}%</div>
+                            <div class="metric-label">報酬率</div>
+                        </div>
+                    </div>
+                `;
+
+                document.querySelector('#opt-table tbody').innerHTML = data.all_results.map((r, i) => `
+                    <tr>
+                        <td>#${i + 1}</td>
+                        <td>${r.short_period}</td>
+                        <td>${r.long_period}</td>
+                        <td>${r.sharpe_ratio?.toFixed(2)}</td>
+                        <td class="${r.total_return >= 0 ? 'positive' : 'negative'}">${(r.total_return * 100).toFixed(1)}%</td>
+                        <td>${r.total_trades || 0}</td>
+                    </tr>
+                `).join('');
+
+            } catch (e) {
+                alert('優化失敗: ' + e.message);
+            }
+        }
+
+        // ========== 策略監控功能 ==========
+        let monitorList = [];
+
+        // 從伺服器載入監控清單
+        async function loadMonitorList() {
+            try {
+                const data = await api('/api/monitor/list', 'GET');
+                monitorList = data.list || [];
+                renderMonitorList();
+            } catch (e) {
+                console.error('載入監控清單失敗:', e);
+                monitorList = [];
+            }
+        }
+
+        // 儲存監控清單到伺服器
+        async function saveMonitorList() {
+            try {
+                await api('/api/monitor/list', 'POST', { list: monitorList });
+            } catch (e) {
+                console.error('儲存監控清單失敗:', e);
+            }
+        }
+
+        function renderMonitorList() {
+            const container = document.getElementById('monitor-list');
+            if (monitorList.length === 0) {
+                container.innerHTML = `<p style="color: #8b949e; text-align: center; padding: 20px;">
+                    尚無監控項目，請添加股票和策略
+                </p>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <table style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>股票</th>
+                            <th>策略</th>
+                            <th>當前訊號</th>
+                            <th>最後更新</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${monitorList.map((item, idx) => `
+                            <tr>
+                                <td><strong>${item.ticker}</strong></td>
+                                <td>${item.strategy}</td>
+                                <td id="signal-${idx}"><span class="status-badge status-idle">--</span></td>
+                                <td id="update-${idx}">--</td>
+                                <td>
+                                    <button class="btn btn-secondary" onclick="viewTrades(${idx})" style="padding: 4px 8px; font-size: 12px;">📜 歷史</button>
+                                    <button class="btn btn-secondary" onclick="removeMonitor(${idx})" style="padding: 4px 8px; font-size: 12px;">❌</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            // 自動更新訊號狀態
+            updateAllMonitorSignals();
+        }
+
+        // 策略監控 - 自訂均線切換
+        function toggleMonitorCustomMA() {
+            const strategy = document.getElementById('monitor-strategy').value;
+            const customParams = document.getElementById('monitor-custom-ma-params');
+            customParams.style.display = strategy === 'MA_Custom' ? 'flex' : 'none';
+        }
+
+        function addMonitor() {
+            const ticker = document.getElementById('monitor-ticker').value.trim();
+            let strategy = document.getElementById('monitor-strategy').value;
+            if (!ticker) { alert('請輸入股票代碼'); return; }
+
+            // 自訂均線處理
+            let short_period = null;
+            let long_period = null;
+            if (strategy === 'MA_Custom') {
+                short_period = parseInt(document.getElementById('monitor-short-ma').value) || 10;
+                long_period = parseInt(document.getElementById('monitor-long-ma').value) || 40;
+                if (short_period >= long_period) {
+                    alert('短期均線天數必須小於長期均線天數');
+                    return;
+                }
+                strategy = `MA${short_period}x${long_period}`;
+            }
+
+            // 檢查是否已存在
+            const exists = monitorList.some(m => m.ticker === ticker && m.strategy === strategy);
+            if (exists) { alert('此監控項目已存在'); return; }
+
+            monitorList.push({ ticker, strategy, short_period, long_period });
+            saveMonitorList();  // 儲存到伺服器
+            document.getElementById('monitor-ticker').value = '';
+            renderMonitorList();
+        }
+
+        function removeMonitor(idx) {
+            monitorList.splice(idx, 1);
+            saveMonitorList();  // 儲存到伺服器
+            renderMonitorList();
+        }
+
+        async function updateAllMonitorSignals() {
+            for (let i = 0; i < monitorList.length; i++) {
+                try {
+                    const item = monitorList[i];
+                    const data = await api('/api/monitor/signal', 'POST', {
+                        ticker: item.ticker,
+                        strategy: item.strategy,
+                        short_period: item.short_period,
+                        long_period: item.long_period
+                    });
+
+                    const signalEl = document.getElementById(`signal-${i}`);
+                    const updateEl = document.getElementById(`update-${i}`);
+
+                    if (data.signal === 1) {
+                        signalEl.innerHTML = '<span class="status-badge status-success">🟢 買入訊號</span>';
+                    } else if (data.signal === -1) {
+                        signalEl.innerHTML = '<span class="status-badge status-error">🔴 賣出訊號</span>';
+                    } else {
+                        signalEl.innerHTML = '<span class="status-badge status-idle">⚪ 觀望中</span>';
+                    }
+                    updateEl.textContent = data.last_date || '--';
+                } catch (e) {
+                    console.error('更新訊號失敗:', e);
+                }
+            }
+        }
+
+        async function viewTrades(idx) {
+            const item = monitorList[idx];
+            try {
+                const data = await api('/api/monitor/trades', 'POST', {
+                    ticker: item.ticker,
+                    strategy: item.strategy,
+                    short_period: item.short_period,
+                    long_period: item.long_period
+                });
+
+                document.getElementById('detail-ticker').textContent = item.ticker;
+                document.getElementById('detail-strategy').textContent = item.strategy;
+
+                if (data.trades && data.trades.length > 0) {
+                    document.getElementById('detail-trades').innerHTML = `
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr><th>日期</th><th>類型</th><th>價格</th><th>持有天數</th><th>報酬</th></tr>
+                            </thead>
+                            <tbody>
+                                ${data.trades.map(t => `
+                                    <tr>
+                                        <td>${t.date}</td>
+                                        <td>${t.type === 'buy' ? '🟢 買入' : '🔴 賣出'}</td>
+                                        <td>${t.price?.toFixed(2) || '--'}</td>
+                                        <td>${t.holding_days || '--'}</td>
+                                        <td class="${(t.return_pct || 0) >= 0 ? 'positive' : 'negative'}">${t.return_pct ? (t.return_pct * 100).toFixed(2) + '%' : '--'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    document.getElementById('detail-trades').innerHTML = '<p style="color: #8b949e; text-align: center;">此期間無交易記錄</p>';
+                }
+
+                document.getElementById('monitor-detail').style.display = 'block';
+            } catch (e) {
+                alert('載入交易歷史失敗: ' + e.message);
+            }
+        }
+
+        // 頁面切換時更新監控清單
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (item.dataset.page === 'monitor') {
+                    renderMonitorList();
+                }
+            });
+        });
+
+        // 初始化
+        updateStatus();
+        setInterval(updateStatus, 5000);  // 每 5 秒更新一次
+        loadMonitorList();  // 載入監控清單
+
+        // 設定結束日期預設為今天
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('backtest-end-date').value = today;
+        document.getElementById('portfolio-end-date').value = today;
+    </script>
+</body>
+
+</html>
