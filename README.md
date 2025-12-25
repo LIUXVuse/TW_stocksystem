@@ -39,10 +39,13 @@ python -m venv .venv
 source .venv/bin/activate  # Mac/Linux
 pip install -r requirements.txt
 
-# 2. 啟動 Web UI
-python -m uvicorn web.app:app --port 8000
+# 2. 啟動 Web UI（區網可連）
+python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
 
 # 3. 打開瀏覽器
+# 本機：http://127.0.0.1:8000
+# 區網其他電腦：http://你的Mac的IP:8000
+# 查詢 Mac IP：在終端機輸入 ifconfig | grep "inet " | grep -v 127.0.0.1
 open http://127.0.0.1:8000
 ```
 
