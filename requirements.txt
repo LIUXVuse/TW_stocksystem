@@ -5,6 +5,7 @@ yfinance>=0.2.28
 requests>=2.31.0
 lxml>=4.9.0
 tqdm>=4.65.0
+filelock>=3.12.0
 
 # 如果要使用技術指標，可以安裝以下套件（選用）
 # pandas-ta>=0.3.14b0

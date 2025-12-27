@@ -47,8 +47,8 @@ def add_log(message: str, level: str = "info"):
     print(f"[{timestamp}] {message}")
 
 async def run_script_async(script_name: str, args: list = None) -> tuple:
-    """非同步執行 Python 腳本，捕捉即時輸出"""
-    cmd = [sys.executable, os.path.join(BASE_DIR, script_name)]
+    """非同步執行 Python 腳本，捕捉即時輸出（含 stderr 進度條）"""
+    cmd = [sys.executable, "-u", os.path.join(BASE_DIR, script_name)]  # -u 強制無緩衝輸出
     if args:
         cmd.extend(args)
     
@@ -59,22 +59,48 @@ async def run_script_async(script_name: str, args: list = None) -> tuple:
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=BASE_DIR
+            cwd=BASE_DIR,
+            env={**os.environ, "PYTHONUNBUFFERED": "1"}  # 確保無緩衝
         )
         
-        # 即時讀取輸出並加入日誌
         output_lines = []
-        while True:
-            line = await process.stdout.readline()
-            if not line:
-                break
-            decoded = line.decode().strip()
-            if decoded:
+        last_progress = ""
+        
+        async def read_stream(stream, is_stderr=False):
+            """讀取串流並處理輸出"""
+            nonlocal last_progress
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                decoded = line.decode().strip()
+                if not decoded:
+                    continue
+                
                 output_lines.append(decoded)
-                # 只記錄有進度的行
-                if any(x in decoded for x in ['%', '成功', '失敗', '完成', '更新', '下載']):
+                
+                # 進度條特殊處理（tqdm 輸出）
+                if '%|' in decoded or 'it/s' in decoded:
+                    # 提取進度百分比
+                    if '%' in decoded:
+                        try:
+                            pct = decoded.split('%')[0].split()[-1]
+                            progress_msg = f"掃描進度: {pct}%"
+                            if progress_msg != last_progress:
+                                app_state["current_step"] = progress_msg
+                                last_progress = progress_msg
+                        except:
+                            pass
+                # 記錄重要訊息
+                elif any(x in decoded for x in ['✅', '❌', '🔍', '🚀', '📄', '成功', '失敗', '完成', '開始', '載入', 'TOP', '策略']):
                     app_state["current_step"] = decoded[:100]
                     add_log(decoded[:100])
+        
+        # 同時讀取 stdout 和 stderr
+        await asyncio.gather(
+            read_stream(process.stdout, False),
+            read_stream(process.stderr, True)
+        )
         
         await process.wait()
         
@@ -82,9 +108,8 @@ async def run_script_async(script_name: str, args: list = None) -> tuple:
             add_log(f"✅ {script_name} 執行成功", "success")
             return True, "\n".join(output_lines)
         else:
-            stderr = await process.stderr.read()
-            add_log(f"❌ {script_name} 執行失敗", "error")
-            return False, stderr.decode()
+            add_log(f"❌ {script_name} 執行失敗 (code: {process.returncode})", "error")
+            return False, "\n".join(output_lines)
             
     except asyncio.TimeoutError:
         add_log(f"⏰ {script_name} 執行超時", "error")
@@ -310,13 +335,13 @@ async def scan_signals():
 
 @app.post("/api/scan/market")
 async def scan_market():
-    """執行全市場夏普比率掃描（需要較長時間）"""
+    """執行全市場夏普比率掃描（v2.0 多進程優化版）"""
     if app_state["running_task"]:
         raise HTTPException(400, "已有任務執行中")
     
     async def task():
         app_state["running_task"] = "scan_market"
-        add_log("🔍 開始全市場掃描（預計 30-60 分鐘）...")
+        add_log("🔍 開始全市場掃描（v2.0 優化版，預計 15-30 分鐘）...")
         try:
             await run_script_async("scan_market.py")
             add_log("✅ 全市場掃描完成", "success")
